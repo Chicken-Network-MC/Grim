@@ -1,23 +1,10 @@
 package ac.grim.grimac.platform.bukkit.events;
 
-import ac.grim.grimac.GrimAPI;
-import ac.grim.grimac.platform.bukkit.utils.convert.BukkitConversionUtils;
-import ac.grim.grimac.player.GrimPlayer;
-import ac.grim.grimac.utils.collisions.datatypes.SimpleCollisionBox;
-import ac.grim.grimac.utils.data.PistonData;
-import com.github.retrooper.packetevents.protocol.world.BlockFace;
 import com.github.retrooper.packetevents.util.Vector3d;
 import com.github.retrooper.packetevents.util.Vector3i;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockPistonExtendEvent;
-import org.bukkit.event.block.BlockPistonRetractEvent;
 
-import java.util.ArrayList;
-import java.util.List;
 
 public class PistonEvent implements Listener {
 
@@ -34,6 +21,7 @@ public class PistonEvent implements Listener {
                 && Math.abs(vectorA.getZ() - vectorB.getZ()) <= MAX_HORIZONTAL_DISTANCE;
     }
 
+    /*
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPistonPushEvent(BlockPistonExtendEvent event) {
         boolean hasSlimeBlock = false;
@@ -73,7 +61,7 @@ public class PistonEvent implements Listener {
         final BlockFace blockFace = BukkitConversionUtils.fromBukkitFace(event.getDirection());
         final Vector3i sourcePos = new Vector3i(piston.getX(), piston.getY(), piston.getZ());
 
-        for (GrimPlayer player : GrimAPI.INSTANCE.getPlayerDataManager().getEntries()) {
+        for (GrimPlayer player : new ArrayList<>(GrimAPI.INSTANCE.getPlayerDataManager().getEntries())) {
             if (player.compensatedWorld.isChunkLoaded(chunkX, chunkZ) && isCloseEnough(sourcePos, player.compensatedEntities.self.trackedServerPosition.getPos())) {
                 final int lastTrans = player.lastTransactionSent.get();
                 PistonData data = new PistonData(blockFace, boxes, lastTrans, true, hasSlimeBlock, hasHoneyBlock);
@@ -131,7 +119,7 @@ public class PistonEvent implements Listener {
         final int chunkZ = event.getBlock().getZ() >> 4;
         Vector3i sourcePos = new Vector3i(event.getBlock().getX(), event.getBlock().getY(), event.getBlock().getZ());
 
-        for (GrimPlayer player : GrimAPI.INSTANCE.getPlayerDataManager().getEntries()) {
+        for (GrimPlayer player : new ArrayList<>(GrimAPI.INSTANCE.getPlayerDataManager().getEntries())) {
             if (player.compensatedWorld.isChunkLoaded(chunkX, chunkZ) && isCloseEnough(sourcePos, player.compensatedEntities.self.trackedServerPosition.getPos())) {
                 int lastTrans = player.lastTransactionSent.get();
                 PistonData data = new PistonData(face, boxes, lastTrans, false, hasSlimeBlock, hasHoneyBlock);
@@ -139,4 +127,5 @@ public class PistonEvent implements Listener {
             }
         }
     }
+     */
 }
