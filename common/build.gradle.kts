@@ -63,6 +63,7 @@ repositories {
             includeGroup("org.geysermc.floodgate")
             includeGroup("org.geysermc.cumulus")
             includeModule("org.geysermc", "common")
+            includeModule("org.geysermc", "geyser-parent")
         }
     }
 
@@ -97,7 +98,7 @@ dependencies {
     }
 
     compileOnly(libs.floodgate.api)
-    compileOnly(libs.via.version.api)
+    compileOnly(libs.viaversion)
     compileOnly(libs.netty)
 }
 
