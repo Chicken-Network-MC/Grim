@@ -2,15 +2,17 @@ package ac.grim.grimac.command.commands;
 
 import ac.grim.grimac.GrimAPI;
 import ac.grim.grimac.command.BuildableCommand;
+import ac.grim.grimac.manager.init.start.SuperDebug;
+import ac.grim.grimac.platform.api.manager.cloud.CloudCommandAdapter;
 import ac.grim.grimac.platform.api.sender.Sender;
 import ac.grim.grimac.utils.anticheat.LogUtil;
 import ac.grim.grimac.utils.anticheat.MessageUtil;
 import ac.grim.grimac.utils.common.arguments.CommonGrimArguments;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.CommandManager;
 import org.incendo.cloud.context.CommandContext;
 import org.incendo.cloud.parser.standard.IntegerParser;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -67,7 +69,7 @@ public class GrimLog implements BuildableCommand {
     }
 
     @Override
-    public void register(CommandManager<Sender> commandManager) {
+    public void register(CommandManager<Sender> commandManager, CloudCommandAdapter adapter) {
         Command<Sender> command = commandManager.commandBuilder("grim", "grimac")
                 .literal("log", "logs")
                 .permission("grim.log")
@@ -80,7 +82,15 @@ public class GrimLog implements BuildableCommand {
                 .command(commandManager.commandBuilder("gl").proxies(command));
     }
 
-    private void handleLog(@NonNull CommandContext<Sender> context) {
+    private void handleLog(@NotNull CommandContext<Sender> context) {
+        Sender sender = context.sender();
+        int flagId = context.get("flagId");
 
+        StringBuilder builder = SuperDebug.getFlag(flagId);
+        if (builder == null) {
+            sender.sendMessage(MessageUtil.getParsedComponent(sender, "upload-log-not-found", "%prefix% &cUnable to find that log"));
+            return;
+        }
+        sendLogAsync(sender, builder.toString(), string -> {}, "text/yaml");
     }
 }
