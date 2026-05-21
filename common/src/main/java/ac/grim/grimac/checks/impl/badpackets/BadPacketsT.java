@@ -13,7 +13,7 @@ import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.util.Vector3d;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity;
 
-@CheckData(name = "BadPacketsT")
+@CheckData(name = "BadPacketsT", stableKey = "grim.badpackets.invalid_interact_vector")
 public class BadPacketsT extends Check implements PacketCheck {
 
     private final double maxHorizontalDisplacement;
@@ -47,7 +47,7 @@ public class BadPacketsT extends Check implements PacketCheck {
             }
 
             // Make sure our target entity is actually a player (Player NPCs work too)
-            if (!EntityTypes.PLAYER.equals(packetEntity.type)) {
+            if (!EntityTypes.PLAYER.equals(packetEntity.getType())) {
                 // We can't check for any entity that is not a player
                 return;
             }

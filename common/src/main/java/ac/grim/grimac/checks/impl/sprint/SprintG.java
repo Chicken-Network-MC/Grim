@@ -8,7 +8,7 @@ import ac.grim.grimac.utils.anticheat.update.PredictionComplete;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 
-@CheckData(name = "SprintG", description = "Sprinting while in water", experimental = true)
+@CheckData(name = "SprintG", stableKey = "grim.sprint.water", description = "Sprinting while in water", experimental = true)
 public class SprintG extends Check implements PostPredictionCheck {
     public SprintG(GrimPlayer player) {
         super(player);
@@ -19,8 +19,9 @@ public class SprintG extends Check implements PostPredictionCheck {
         if (player.wasTouchingWater && (player.wasWasTouchingWater || player.getClientVersion() == ClientVersion.V_1_21_4)
                 && !player.wasEyeInWater && player.getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_13)
                 && player.wasLastPredictionCompleteChecked && predictionComplete.isChecked()
-                && !EntityTypes.isTypeInstanceOf(player.getVehicleType(), EntityTypes.CAMEL)) {
-            if (player.isSprinting && !player.isSwimming) {
+                && !EntityTypes.isTypeInstanceOf(player.getVehicleType(), EntityTypes.CAMEL)
+                && !player.isSwimming) {
+            if (player.isSprinting) {
                 flagAndAlertWithSetback();
             } else {
                 reward();

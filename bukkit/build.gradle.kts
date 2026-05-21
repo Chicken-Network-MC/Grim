@@ -80,6 +80,13 @@ bukkit {
         "floodgate",
         "FastLogin",
         "PlaceholderAPI",
+        // Driver holder mods — softdepend so each backend's driver class
+        // resolves through the linked classloader.
+        "sqlite-jdbc",
+        "mysql-jdbc",
+        "postgresql-jdbc",
+        "mongodb-driver",
+        "jedis",
     )
 
     permissions {
@@ -164,6 +171,7 @@ tasks {
             vendor = JvmVendorSpec.JETBRAINS
             languageVersion = JavaLanguageVersion.of(25)
         }
+        systemProperties(mapOf("paper.explicit-flush" to "true"))
         minecraftVersion("26.1.2")
     }
 

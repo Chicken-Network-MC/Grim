@@ -15,7 +15,7 @@ import com.github.retrooper.packetevents.protocol.player.InteractionHand;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerFlying;
 
-@CheckData(name = "PacketOrderC")
+@CheckData(name = "PacketOrderC", stableKey = "grim.packetorder.interact_order")
 public class PacketOrderC extends Check implements PacketCheck {
     private final boolean exempt = player.getClientVersion().isOlderThanOrEquals(ClientVersion.V_1_7_10) // 1.7 players do not send INTERACT_AT
             || player.getClientVersion().isNewerThanOrEquals(ClientVersion.V_26_1) // 26.1 players do not send INTERACT
@@ -44,7 +44,7 @@ public class PacketOrderC extends Check implements PacketCheck {
             //  - when renaming the armor stand or in spectator mode: INTERACT_AT + INTERACT
             //  - in all other cases: only INTERACT
             // Just exempt armor stands to be safe
-            if (entity != null && entity.type == EntityTypes.ARMOR_STAND) return;
+            if (entity != null && entity.getType() == EntityTypes.ARMOR_STAND) return;
 
             final boolean sneaking = packet.isSneaking().orElse(false);
 

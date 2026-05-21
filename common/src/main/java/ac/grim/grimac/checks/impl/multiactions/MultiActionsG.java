@@ -10,7 +10,7 @@ import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.protocol.world.BlockFace;
 
-@CheckData(name = "MultiActionsG", description = "Attacking or using items while rowing a boat", experimental = true)
+@CheckData(name = "MultiActionsG", stableKey = "grim.multiactions.action_while_rowing", description = "Attacking or using items while rowing a boat", experimental = true)
 public class MultiActionsG extends BlockPlaceCheck {
     public MultiActionsG(GrimPlayer player) {
         super(player);
@@ -52,7 +52,7 @@ public class MultiActionsG extends BlockPlaceCheck {
 
     public boolean isCheckActive() {
         return player.getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_9) && !player.vehicleData.wasVehicleSwitch // one tick off?
-                && player.inVehicle() && player.compensatedEntities.self.getRiding().type.isInstanceOf(EntityTypes.BOAT)
+                && player.inVehicle() && player.compensatedEntities.self.getRiding().getType().isInstanceOf(EntityTypes.BOAT)
                 && (player.vehicleData.nextVehicleForward != 0 || player.vehicleData.nextVehicleHorizontal != 0);
     }
 }
