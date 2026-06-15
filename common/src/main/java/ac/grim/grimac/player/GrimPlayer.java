@@ -101,6 +101,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 // Variables that need lag compensation should have their own class
 // Soon there will be a generic class for lag compensation
 public class GrimPlayer implements GrimUser {
+    public static final Vector3d DEFAULT_STUCK_SPEED = new Vector3d(1, 1, 1);
     public final UUID uuid;
     public final User user;
     public int entityID;
@@ -108,7 +109,7 @@ public class GrimPlayer implements GrimUser {
     // Start transaction handling stuff
     // Determining player ping
     // The difference between keepalive and transactions is that keepalive is async while transactions are sync
-    public final Queue<Pair<Short, Long>> transactionsSent = new ConcurrentLinkedQueue<>();
+    public final Queue<ShortToLongPair> transactionsSent = new ConcurrentLinkedQueue<>();
     public final Set<Short> didWeSendThatTrans = ConcurrentHashMap.newKeySet();
     private final AtomicInteger transactionIDCounter = new AtomicInteger(0);
     public final AtomicInteger lastTransactionSent = new AtomicInteger(0);
@@ -138,7 +139,7 @@ public class GrimPlayer implements GrimUser {
     public boolean playerEntityHasGravity = true;
     public VectorData predictedVelocity = new VectorData(new Vector3dm(), VectorData.VectorType.Normal);
     public Vector3dm actualMovement = new Vector3dm();
-    public Vector3dm stuckSpeedMultiplier = new Vector3dm(1, 1, 1);
+    public Vector3d stuckSpeedMultiplier = DEFAULT_STUCK_SPEED;
     public final UncertaintyHandler uncertaintyHandler;
     public double gravity;
     public float friction;
@@ -249,6 +250,8 @@ public class GrimPlayer implements GrimUser {
     @Getter @Setter private ResyncHandler resyncHandler = GrimAPI.INSTANCE.getConfigManager().getConfig().getBooleanElse("disable-default-resync-handler", false) ? NoOpResyncHandler.INSTANCE : new DefaultResyncHandler(this);
     @Getter private final FeatureManagerImpl featureManager = new FeatureManagerImpl(this);
     public boolean serverOpenedInventoryThisTick;
+    // Whether this tick's movement intersected a nether portal block (see MultiActionsD)
+    public boolean isInNetherPortal;
     // start config
     private boolean debugPacketCancel = false;
     private int spamThreshold = 100;
@@ -398,10 +401,10 @@ public class GrimPlayer implements GrimUser {
     // But if some error made a client miss a packet, then it won't hurt them too bad.
     // Also it forces players to take knockback
     public boolean addTransactionResponse(short id) {
-        Pair<Short, Long> data = null;
+        ShortToLongPair data = null;
         boolean hasID = false;
         int skipped = 0;
-        for (Pair<Short, Long> iterator : transactionsSent) {
+        for (ShortToLongPair iterator : transactionsSent) {
             if (iterator.first() == id) {
                 hasID = true;
                 break;
@@ -414,7 +417,7 @@ public class GrimPlayer implements GrimUser {
             if (viaPacketTracker != null) viaPacketTracker.setIntervalPackets(viaPacketTracker.getIntervalPackets() - 1);
 
             if (skipped > 0 && System.currentTimeMillis() - joinTime > 5000)
-                checkManager.getCheck(TransactionOrder.class).flagAndAlert("skipped=" + skipped);
+                checkManager.getCheck(TransactionOrder.class).flag("skipped=" + skipped);
 
             do {
                 data = transactionsSent.poll();
@@ -612,20 +615,28 @@ public class GrimPlayer implements GrimUser {
     // TODO: Create a configurable timer for this
     @Override
     public void updatePermissions() {
-        if (platformPlayer == null) return;
-        try {
-            GrimAPI.INSTANCE.getScheduler().getEntityScheduler().execute(platformPlayer, GrimAPI.INSTANCE.getGrimPlugin(), () -> {
-                this.noModifyPacketPermission = platformPlayer.hasPermission("grim.nomodifypacket");
-                this.noSetbackPermission = platformPlayer.hasPermission("grim.nosetback");
+        runSafely(() -> {
+            try {
+                boolean noModifyPacketPermission = hasPermission("grim.nomodifypacket");
+                boolean noSetbackPermission = hasPermission("grim.nosetback");
+                boolean disabledPermission = hasPermission("grim.disabled");
+                boolean exemptPermission = hasPermission("grim.exempt");
                 for (AbstractCheck check : checkManager.allChecks.values()) {
                     if (check instanceof Check c) {
                         c.updatePermissions();
                     }
                 }
-            }, null, 0);
-        } catch (Exception e) {
-            LogUtil.error("Failed to update permissions for " + getName() + "!", e);
-        }
+
+                this.noModifyPacketPermission = noModifyPacketPermission;
+                this.noSetbackPermission = noSetbackPermission;
+                this.disableGrim = disabledPermission;
+                if (exemptPermission) {
+                    GrimAPI.INSTANCE.getPlayerDataManager().exemptUser(user);
+                }
+            } catch (Exception e) {
+                LogUtil.error("Failed to update permissions for " + getName() + "!", e);
+            }
+        });
     }
 
     public boolean isPointThree() {
@@ -837,12 +848,29 @@ public class GrimPlayer implements GrimUser {
     }
 
     public boolean isInWaterOrRain() {
-        return compensatedWorld.isRaining || Collisions.hasMaterial(this, boundingBox.copy().expand(0.1f), (block) -> Materials.isWater(CompensatedWorld.blockVersion, block.first()));
+        return compensatedWorld.isRaining || Collisions.hasMaterial(this, boundingBox.copy().expand(0.1f), (block, x, y, z) -> Materials.isWater(CompensatedWorld.blockVersion, block));
+    }
+
+    public void updateNetherPortalState() {
+        // Like the client (Entity#checkInsideBlocks), test the whole tick's movement, not just the
+        // resolved position, so a fast run-through through a portal is still detected.
+        SimpleCollisionBox movementThisTick = GetBoundingBox.getCollisionBoxForPlayer(this, x, y, z).expandToCoordinate(lastX - x, lastY - y, lastZ - z);
+        isInNetherPortal = compensatedWorld.containsNetherPortal(movementThisTick);
+    }
+
+    @Contract(pure = true)
+    public boolean supportsEndTickPreVia() {
+        return getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_21_2);
     }
 
     @Contract(pure = true)
     public boolean supportsEndTick() {
-        return getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_21_2) && PacketEvents.getAPI().getServerManager().getVersion().isNewerThanOrEquals(ServerVersion.V_1_21_2);
+        return supportsEndTickPreVia() && PacketEvents.getAPI().getServerManager().getVersion().isNewerThanOrEquals(ServerVersion.V_1_21_2);
+    }
+
+    @Contract(pure = true)
+    public boolean canSkipTicksPreVia() {
+        return getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_9) && !supportsEndTickPreVia();
     }
 
     @Contract(pure = true)

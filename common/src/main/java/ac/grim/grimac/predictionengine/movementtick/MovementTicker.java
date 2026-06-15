@@ -254,7 +254,7 @@ public class MovementTicker {
             player.uncertaintyHandler.lastStuckSpeedMultiplier.reset();
         }
 
-        player.stuckSpeedMultiplier = new Vector3dm(1, 1, 1);
+        player.stuckSpeedMultiplier = GrimPlayer.DEFAULT_STUCK_SPEED;
 
         // 1.15 and older clients use the handleInsideBlocks method for lava
         if (player.getClientVersion().isOlderThan(ClientVersion.V_1_16))
@@ -269,7 +269,7 @@ public class MovementTicker {
 
         // Flying players are not affected by cobwebs/sweet berry bushes
         if (player.isFlying) {
-            player.stuckSpeedMultiplier = new Vector3dm(1, 1, 1);
+            player.stuckSpeedMultiplier = GrimPlayer.DEFAULT_STUCK_SPEED;
         }
     }
 
@@ -430,7 +430,7 @@ public class MovementTicker {
             if (player.depthStriderLevel > 0.0F) {
                 final float divisor = player.getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_21) ? 1.0F : 3.0F;
                 swimFriction += (0.54600006F - swimFriction) * player.depthStriderLevel / divisor;
-                swimSpeed += (player.speed - swimSpeed) * player.depthStriderLevel / divisor;
+                swimSpeed += (((float) player.speed) - swimSpeed) * player.depthStriderLevel / divisor;
             }
 
             if (player.compensatedEntities.getPotionLevelForPlayer(PotionTypes.DOLPHINS_GRACE).isPresent()) {
@@ -475,7 +475,7 @@ public class MovementTicker {
                     doNormalMove(blockFriction);
 
                     player.isGliding = false;
-                    player.pointThreeEstimator.updatePlayerGliding(); // TODO: should this be true even if player stopped gliding?
+                    player.pointThreeEstimator.updatePlayerGliding();
                 } else {
                     player.friction = 0.99F; // Not vanilla, just useful for other grim stuff
                     // Set fall distance to 1 if the player’s y velocity is greater than -0.5 when falling
